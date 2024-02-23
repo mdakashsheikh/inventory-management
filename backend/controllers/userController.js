@@ -147,9 +147,82 @@ const registerUser = asyncHandler(async(req, res) => {
     if(varified) {
         return res.json(true);
     }
-    
+
     return res.json(false);
  })
+
+ //Update User
+ const updateUser = asyncHandler(async(req, res) => {
+    const user = await User.findById(req.user._id);
+
+    if(user) {
+        const { name, email, photo, phone, bio } = user;
+        user.email = email;
+        user.name = req.body.name || name;
+        user.phone = req.body.phone || phone;
+        user.photo = req.body.photo || photo;
+        user.bio = req.body.bio || bio;
+
+        const updateUser = await user.save();
+        res.json({
+            _id: updateUser._id, 
+            name: updateUser.name, 
+            email: updateUser.email, 
+            photo: updateUser.photo, 
+            phone: updateUser.phone, 
+            bio: updateUser.bio
+        })
+    } else {
+        res.status(404)
+        throw new Error('User not found');
+    }
+ })
+
+ 
+//Change Password
+const changePassword = asyncHandler(async(req, res) => {
+    const user = await User.findById(req.user._id);
+
+    const { oldPassword, password } = req.body;
+
+    if(!user) {
+        res.status(404)
+        throw new Error('User not found');
+    }
+
+    //Validate
+    if(!oldPassword || !password) {
+        res.status(400)
+        throw new Error('Please add Old and New Password')
+    }
+
+    //Check oldPassword and newPassword matches in DB
+    const passwordIsCorrect = await bcrypt.compare(oldPassword, user.password);
+
+    //Save new password
+    if(user && passwordIsCorrect) {
+        user.password = password;
+        await user.save();
+        res.status(200).send('Password Change Successful');
+    } else {
+        res.status(400)
+        throw new Error('Old password is incorrect')
+    }
+})
+
+//Forgot Password
+const forgotPassword = asyncHandler(async(req, res) => {
+    const { email } = req.body;
+    const user = await User.findOne({ email })
+
+    if(!user) {
+        res.status(404)
+        throw new Error('User not found');
+    }
+
+    //Create reset Token
+    
+})
 
 module.exports = {
     registerUser,
@@ -157,4 +230,7 @@ module.exports = {
     logoutUser,
     getUser,
     loginStatus,
+    updateUser,
+    changePassword,
+    forgotPassword,
 }
